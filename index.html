@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta
+    name="description"
+    content="HiLo-WAM: Decoupling Long-Horizon Task Evolution and Local Dynamics in World Action Models."
+  />
+  <title>HiLo-WAM</title>
+
+  <link rel="icon" href="static/images/favicon.svg" />
+  <link rel="stylesheet" href="static/css/index.css" />
+</head>
+
+<body>
+
+<!-- =========================================================
+     Navigation
+     ========================================================= -->
+<header class="site-header">
+  <div class="nav-shell">
+    <a class="brand" href="#top">HiLo-WAM</a>
+
+    <button
+      class="nav-toggle"
+      id="navToggle"
+      aria-label="Toggle navigation"
+      aria-expanded="false"
+      type="button"
+    >
+      <span></span>
+      <span></span>
+      <span></span>
+    </button>
+
+    <nav class="nav-links" id="navLinks">
+      <a href="#abstract">Abstract</a>
+      <a href="#method">Method</a>
+      <a href="#results">Results</a>
+      <a href="#analysis">Analysis</a>
+      <a href="#real-world">Real Robot</a>
+      <a href="#bibtex">BibTeX</a>
+    </nav>
+  </div>
+</header>
+
+<main id="top">
+
+<!-- =========================================================
+     Hero
+     ========================================================= -->
+<section class="hero">
+  <div class="container hero-inner">
+    <p class="eyebrow">World Action Models for Long-Horizon Manipulation</p>
+
+    <h1>
+      <span class="brand-gradient">HiLo-WAM</span>:
+      Decoupling Long-Horizon Task Evolution and Local Dynamics
+      in World Action Models
+    </h1>
+
+    <p class="hero-subtitle">
+      A multi-scale World Action Model that separately captures long-horizon
+      task evolution and fine-grained local interaction dynamics, while enabling
+      both to jointly guide robot actions.
+    </p>
+
+    <!-- TODO: replace author names and affiliations -->
+    <div class="authors">
+      <span>Anonymous authors</span>
+      <!-- <span>Author Two<sup>1</sup></span>
+      <span>Author Three<sup>2</sup></span> -->
+    </div>
+
+    <div class="affiliations">
+      <span>Paper under double-blind review</span>
+      <!-- <span><sup>2</sup>Affiliation Two</span> -->
+    </div>
+
+    <!-- TODO: replace # with real links -->
+    <div class="hero-actions">
+      <a class="button primary" href="#">Paper</a>
+      <a class="button" href="#">arXiv</a>
+      <a class="button" href="#">Video</a>
+      <a class="button" href="#">Code</a>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     Teaser
+     ========================================================= -->
+<section class="section teaser-section">
+  <div class="container wide">
+    <figure class="paper-figure hero-figure">
+      <img src="fig/teaser.png" alt="HiLo-WAM teaser figure" />
+      <figcaption>
+        HiLo-WAM factorizes visual world modeling into a sparse long-horizon
+        stream and a dense local dynamics stream, allowing complementary
+        temporal information to jointly support action generation.
+      </figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- =========================================================
+     Abstract
+     ========================================================= -->
+<section class="section" id="abstract">
+  <div class="container text-container">
+    <h2>Abstract</h2>
+
+    <p>
+      World Action Models (WAMs) improve robotic manipulation by jointly modeling
+      visual dynamics and robot actions. However, a single visual trajectory must
+      simultaneously represent slow task-level evolution and dense local interaction
+      dynamics, which becomes increasingly difficult for long-horizon manipulation.
+      We propose <strong>HiLo-WAM</strong>, which decouples visual world modeling
+      into complementary long-horizon and local dynamics processes. A sparse
+      long-horizon visual stream captures historical task context and coarse future
+      evolution, while a dense local visual stream models fine-grained short-horizon
+      robot--object interactions. The two processes operate at different temporal
+      resolutions and interact with action generation through structured cross-stream
+      attention. Progressive stream-wise denoising further limits the inference
+      overhead introduced by long-horizon visual modeling. Experiments in simulation
+      and on a physical robot demonstrate strong long-horizon manipulation performance
+      and verify the distinct, complementary roles of the two temporal processes.
+    </p>
+  </div>
+</section>
+
+<!-- =========================================================
+     Motivation
+     ========================================================= -->
+<section class="section soft" id="motivation">
+  <div class="container">
+    <div class="section-heading">
+      <p class="section-kicker">Motivation</p>
+      <h2>Why HiLo-WAM?</h2>
+      <p>
+        Long-horizon manipulation requires two different kinds of visual dynamics:
+        task-level evolution over extended time and precise local interactions around
+        the current control step.
+      </p>
+    </div>
+
+    <div class="concept-grid">
+      <article class="concept-card neutral">
+        <div class="concept-tag">Conventional WAM</div>
+        <h3>One visual trajectory</h3>
+        <p>
+          A single temporal process must simultaneously represent long-range task
+          progression and dense local motion.
+        </p>
+      </article>
+
+      <article class="concept-card horizon">
+        <div class="concept-tag">Hi</div>
+        <h3>Long-horizon task evolution</h3>
+        <p>
+          Sparse observations provide broader temporal coverage for historical
+          context and coarse future evolution.
+        </p>
+      </article>
+
+      <article class="concept-card local">
+        <div class="concept-tag">Lo</div>
+        <h3>Local interaction dynamics</h3>
+        <p>
+          Dense short-range observations preserve the fine-grained visual dynamics
+          required for precise control.
+        </p>
+      </article>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     Method
+     ========================================================= -->
+<section class="section" id="method">
+  <div class="container">
+    <div class="section-heading">
+      <p class="section-kicker">Method</p>
+      <h2>HiLo-WAM</h2>
+      <p>
+        Multi-scale temporal modeling separates the two visual roles, while
+        structured cross-stream interaction lets them jointly support action generation.
+      </p>
+    </div>
+
+    <figure class="paper-figure">
+      <img src="fig/framework.png" alt="HiLo-WAM framework" />
+      <figcaption>Overview of the HiLo-WAM architecture.</figcaption>
+    </figure>
+
+    <div class="method-grid">
+      <article class="method-card">
+        <div class="method-number">01</div>
+        <h3>Multi-scale temporal modeling</h3>
+        <p>
+          The long-horizon stream samples observations with temporal stride
+          <span class="math">k</span>, providing broader but sparser temporal
+          coverage, while the local stream uses dense unit-stride observations.
+        </p>
+        <div class="equation">
+          V<sup>H</sup><sub>t</sub> = {o<sub>t+ik</sub>},
+          &nbsp;&nbsp;
+          V<sup>L</sup><sub>t</sub> = {o<sub>t+j</sub>}
+        </div>
+      </article>
+
+      <article class="method-card">
+        <div class="method-number">02</div>
+        <h3>Structured cross-stream interaction</h3>
+        <p>
+          Information flows from long-horizon task evolution toward local dynamics
+          and action generation, while uncertain distant futures remain restricted
+          to the long-horizon stream.
+        </p>
+      </article>
+
+      <article class="method-card">
+        <div class="method-number">03</div>
+        <h3>Progressive denoising</h3>
+        <p>
+          Visual streams terminate once sufficient representations are obtained,
+          while the action stream continues to refine, reducing unnecessary
+          world-model computation.
+        </p>
+      </article>
+    </div>
+
+    <div class="subsection-block">
+      <div class="subsection-copy">
+        <h3>Structured attention mask</h3>
+        <p>
+          The attention mask defines how information is exchanged across the
+          long-horizon, local-dynamics, and action streams. Arrows indicate
+          unidirectional attention between streams.
+        </p>
+      </div>
+
+      <figure class="paper-figure compact">
+        <img src="fig/attention.png" alt="Structured cross-stream attention mask" />
+        <figcaption>Attention mask used by HiLo-WAM.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     Main Results
+     ========================================================= -->
+<section class="section soft" id="results">
+  <div class="container">
+    <div class="section-heading">
+      <p class="section-kicker">Main Results</p>
+      <h2>Strong Long-Horizon Manipulation Performance</h2>
+      <p>
+        HiLo-WAM performs strongly on both RoboTwin 2.0 and the RoboDojo
+        long-horizon benchmark without embodied pretraining.
+      </p>
+    </div>
+
+    <div class="metric-row">
+      <div class="metric-card">
+        <span class="metric-value">93.70%</span>
+        <span class="metric-label">RoboTwin 2.0 Avg. SR</span>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-value">17.43</span>
+        <span class="metric-label">RoboDojo Long-Horizon Score</span>
+      </div>
+
+      <div class="metric-card">
+        <span class="metric-value">6.50%</span>
+        <span class="metric-label">RoboDojo Success</span>
+      </div>
+    </div>
+
+    <div class="figure-grid two">
+      <figure class="paper-figure card-figure">
+        <img src="fig/robotwin.png" alt="RoboTwin 2.0 quantitative results" />
+        <figcaption>RoboTwin 2.0 quantitative comparison.</figcaption>
+      </figure>
+
+      <figure class="paper-figure card-figure">
+        <img src="fig/robodojo.png" alt="RoboDojo long-horizon results" />
+        <figcaption>RoboDojo long-horizon evaluation.</figcaption>
+      </figure>
+    </div>
+
+    <div class="subsection-block top-gap">
+      <div class="subsection-copy">
+        <h3>Qualitative comparison</h3>
+
+        <p>
+          On RoboDojo, Fast-WAM frequently switches target objects before completing
+          the current manipulation, leading to inconsistent task progression under
+          multimodal action distributions. HiLo-WAM maintains a more coherent
+          long-horizon task sequence.
+        </p>
+
+        <p>
+          On RoboTwin 2.0, the cup-hanging task requires precise local alignment.
+          Fast-WAM fails during final placement, while HiLo-WAM completes the
+          interaction successfully. Overall, HiLo-WAM maintains strong capabilities
+          in both long-horizon task evolution and local interaction dynamics.
+        </p>
+      </div>
+
+      <figure class="paper-figure">
+        <img
+          src="fig/performance.png"
+          alt="Qualitative comparison between Fast-WAM and HiLo-WAM"
+        />
+        <figcaption>Representative Fast-WAM and HiLo-WAM rollouts.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     Analysis
+     ========================================================= -->
+<section class="section" id="analysis">
+  <div class="container">
+    <div class="section-heading">
+      <p class="section-kicker">Understanding HiLo-WAM</p>
+      <h2>What Do the Two Temporal Scales Contribute?</h2>
+      <p>
+        Ablations, temporal-scale analysis, and visualization reveal how the
+        long-horizon and local streams play different but complementary roles.
+      </p>
+    </div>
+
+    <div class="analysis-row">
+      <div class="analysis-copy">
+        <h3>Contribution of the two visual streams</h3>
+        <p>
+          Adding coarse future planning to local dynamics substantially improves
+          performance, while sparse historical memory provides an additional gain.
+          Removing the local stream slightly reduces performance, showing that
+          dense short-horizon dynamics remain complementary to long-range task context.
+        </p>
+      </div>
+
+      <figure class="paper-figure card-figure">
+        <img
+          src="fig/robotwin_ablation.png"
+          alt="RoboTwin 2.0 visual-stream ablations"
+        />
+        <figcaption>Visual-stream ablations on RoboTwin 2.0.</figcaption>
+      </figure>
+    </div>
+
+    <div class="analysis-row reverse">
+      <div class="analysis-copy">
+        <h3>Effect of temporal scale</h3>
+        <p>
+          Increasing temporal stride broadens the coverage of the long-horizon
+          stream, but also makes observations sparser. Performance peaks at
+          <span class="math">k = 4</span>, indicating that effective long-horizon
+          modeling requires balancing temporal coverage and temporal resolution
+          rather than simply increasing the stride.
+        </p>
+      </div>
+
+      <figure class="paper-figure card-figure">
+        <img src="fig/temporal_scale.png" alt="Effect of temporal scale" />
+        <figcaption>Success rate under different temporal strides.</figcaption>
+      </figure>
+    </div>
+
+    <div class="interaction-block">
+      <div class="section-heading compact-heading">
+        <h3>Cross-stream interaction analysis</h3>
+        <p>
+          The rollout attention visualization shows <em>how</em> the streams exchange
+          information, while visual prediction shows <em>what effect</em> that interaction
+          has on local dynamics.
+        </p>
+      </div>
+
+      <div class="figure-grid two interaction-grid">
+        <figure class="paper-figure card-figure">
+          <img src="fig/attention_vis.png" alt="Attention maps during execution" />
+          <figcaption>
+            <strong>Attention during execution.</strong>
+            Action and local queries attend to complementary task-level and local regions.
+          </figcaption>
+        </figure>
+
+        <figure class="paper-figure card-figure">
+          <img
+            src="fig/video_predict.png"
+            alt="Local video prediction with and without long-horizon guidance"
+          />
+          <figcaption>
+            <strong>Long-horizon guidance for local dynamics.</strong>
+            Local predictions remain more consistent with intended task evolution.
+          </figcaption>
+        </figure>
+      </div>
+
+      <p class="interaction-summary">
+        Overall, HiLo-WAM decouples long-horizon task evolution from local interaction
+        dynamics, while enabling the two processes to interact and jointly support
+        action generation.
+      </p>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     Real-world experiments
+     ========================================================= -->
+<section class="section soft" id="real-world">
+  <div class="container">
+    <div class="section-heading">
+      <p class="section-kicker">Physical Robot</p>
+      <h2>Real-World Manipulation on Fourier GR-3</h2>
+      <p>
+        HiLo-WAM maintains strong performance under both in-domain and
+        out-of-distribution conditions.
+      </p>
+    </div>
+
+    <figure class="paper-figure card-figure">
+      <img src="fig/real_world.png" alt="Real-world evaluation on Fourier GR-3" />
+      <figcaption>
+        Real-world quantitative evaluation on the Fourier GR-3 robot.
+      </figcaption>
+    </figure>
+
+    <!-- =====================================================
+         Real-world videos
+         ===================================================== -->
+    <div class="real-video-section">
+      <div class="real-video-header">
+        <div>
+          <p class="section-kicker">Rollouts</p>
+          <h3>Real-World Video Comparison</h3>
+          <p class="video-help">
+            Each row is one task. Compare the same task across
+            <span class="model-inline">π<sub>0.5</sub></span>,
+            <span class="model-inline">Fast-WAM</span>, and
+            <span class="model-inline">HiLo-WAM</span>.
+          </p>
+        </div>
+
+        <div class="speed-panel" aria-label="Video playback speed controls">
+          <span class="speed-label">Playback speed</span>
+          <div class="speed-buttons" role="group" aria-label="Choose playback speed">
+            <button class="speed-button" data-speed="1" type="button">1×</button>
+            <button class="speed-button" data-speed="1.5" type="button">1.5×</button>
+            <button class="speed-button active" data-speed="2" type="button">2×</button>
+            <button class="speed-button" data-speed="3" type="button">3×</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Column labels -->
+      <div class="video-model-header" aria-hidden="true">
+        <span></span>
+        <span>π<sub>0.5</sub></span>
+        <span>Fast-WAM</span>
+        <span class="hilo-column">HiLo-WAM</span>
+      </div>
+
+      <!-- Task 1 -->
+      <section class="video-task-row">
+        <div class="video-task-name">
+          <span class="task-index">01</span>
+          <h4>Build House</h4>
+        </div>
+
+        <figure class="video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/build_house_pi05.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>π<sub>0.5</sub></figcaption>
+        </figure>
+
+        <figure class="video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/build_house_fastwam.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>Fast-WAM</figcaption>
+        </figure>
+
+        <figure class="video-card hilo-video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/build_house_hilowam.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>HiLo-WAM</figcaption>
+        </figure>
+      </section>
+
+      <!-- Task 2 -->
+      <section class="video-task-row">
+        <div class="video-task-name">
+          <span class="task-index">02</span>
+          <h4>Disassemble House</h4>
+        </div>
+
+        <figure class="video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/disassemble_house_pi05.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>π<sub>0.5</sub></figcaption>
+        </figure>
+
+        <figure class="video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/disassemble_house_fastwam.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>Fast-WAM</figcaption>
+        </figure>
+
+        <figure class="video-card hilo-video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/disassemble_house_hilowam.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>HiLo-WAM</figcaption>
+        </figure>
+      </section>
+
+      <!-- Task 3 -->
+      <section class="video-task-row">
+        <div class="video-task-name">
+          <span class="task-index">03</span>
+          <h4>Disassemble Heart</h4>
+        </div>
+
+        <figure class="video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/disassemble_heart_pi05.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>π<sub>0.5</sub></figcaption>
+        </figure>
+
+        <figure class="video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/disassemble_heart_fastwam.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>Fast-WAM</figcaption>
+        </figure>
+
+        <figure class="video-card hilo-video-card">
+          <video class="robot-video" controls muted loop playsinline preload="metadata">
+            <source src="videos/disassemble_heart_hilowam.mp4" type="video/mp4" />
+            Your browser does not support HTML5 video.
+          </video>
+          <figcaption>HiLo-WAM</figcaption>
+        </figure>
+      </section>
+    </div>
+
+    <!-- Optional rollout images -->
+    <div class="figure-grid two top-gap">
+      <figure class="paper-figure card-figure">
+        <img src="fig/真机原始.jpg" alt="In-domain GR-3 robot rollout" />
+        <figcaption>In-domain real-robot rollout.</figcaption>
+      </figure>
+
+      <figure class="paper-figure card-figure">
+        <img src="fig/真机泛化.jpg" alt="OOD GR-3 robot rollout" />
+        <figcaption>OOD real-robot rollout.</figcaption>
+      </figure>
+    </div>
+
+    <div class="efficiency-block">
+      <div class="analysis-copy">
+        <h3>Efficient progressive denoising</h3>
+        <p>
+          Multi-scale visual modeling introduces additional long-horizon computation.
+          Progressive denoising reduces HiLo-WAM latency from
+          <strong>404 ms</strong> to <strong>293 ms</strong> by terminating visual
+          streams at different stages. In deployment, Real-Time Chunking (RTC) can
+          further overlap policy inference with ongoing robot execution.
+        </p>
+      </div>
+
+      <figure class="paper-figure card-figure latency-card">
+        <img src="fig/latency.png" alt="Inference latency and frequency" />
+        <figcaption>Inference latency and frequency.</figcaption>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- =========================================================
+     Takeaway
+     ========================================================= -->
+<section class="section takeaway">
+  <div class="container text-container">
+    <h2>Takeaway</h2>
+
+    <p class="takeaway-text">
+      Long-horizon manipulation benefits from explicitly separating
+      <span class="horizon-text">task-level temporal evolution</span>
+      from
+      <span class="local-text">fine-grained local interaction dynamics</span>.
+      HiLo-WAM models them at different temporal scales, lets them interact,
+      and uses both to guide action generation.
+    </p>
+  </div>
+</section>
+
+<!-- =========================================================
+     BibTeX
+     ========================================================= -->
+<section class="section" id="bibtex">
+  <div class="container text-container">
+    <div class="bibtex-heading">
+      <h2>BibTeX</h2>
+      <button class="copy-button" id="copyBibtex" type="button">Copy</button>
+    </div>
+
+    <!-- TODO: replace with final citation -->
+    <pre id="bibtexText">@article{hilowam2026,
+  title   = {HiLo-WAM: Decoupling Long-Horizon Task Evolution and Local Dynamics in World Action Models},
+  author  = {Anonymous authors},
+  journal = {arXiv preprint},
+  year    = {2026}
+}</pre>
+  </div>
+</section>
+
+</main>
+
+<footer class="site-footer">
+  <div class="container footer-inner">
+    <p>
+      Website template inspired by
+      <a href="https://nerfies.github.io/" target="_blank" rel="noopener">Nerfies</a>.
+    </p>
+    <p>HiLo-WAM Project Page</p>
+  </div>
+</footer>
+
+<script src="static/js/index.js"></script>
+</body>
+</html>
