@@ -1,118 +1,31 @@
-/* =========================================================
-   HiLo-WAM project page
-   ========================================================= */
-
-(function () {
-  /* ---------------------------
-     Mobile navigation
-     --------------------------- */
-  const toggle = document.getElementById("navToggle");
-  const nav = document.getElementById("navLinks");
-
-  if (toggle && nav) {
-    toggle.addEventListener("click", () => {
-      const isOpen = nav.classList.toggle("open");
-      toggle.setAttribute("aria-expanded", String(isOpen));
+(() => {
+  const navToggle = document.querySelector('#navToggle');
+  const nav = document.querySelector('#navLinks');
+  if (navToggle && nav) {
+    navToggle.addEventListener('click', () => {
+      const open = nav.classList.toggle('open');
+      navToggle.setAttribute('aria-expanded', String(open));
+      navToggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
     });
-
-    nav.querySelectorAll("a").forEach((link) => {
-      link.addEventListener("click", () => {
-        nav.classList.remove("open");
-        toggle.setAttribute("aria-expanded", "false");
-      });
-    });
+    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
+      nav.classList.remove('open'); navToggle.setAttribute('aria-expanded','false');
+    }));
   }
-
-  /* ---------------------------
-     BibTeX copy
-     --------------------------- */
-  const copyButton = document.getElementById("copyBibtex");
-  const bibtexText = document.getElementById("bibtexText");
-
-  if (copyButton && bibtexText) {
-    copyButton.addEventListener("click", async () => {
-      try {
-        await navigator.clipboard.writeText(bibtexText.textContent);
-        const original = copyButton.textContent;
-
-        copyButton.textContent = "Copied";
-
-        setTimeout(() => {
-          copyButton.textContent = original;
-        }, 1300);
-      } catch (error) {
-        copyButton.textContent = "Copy failed";
-      }
-    });
+  const videos = [...document.querySelectorAll('.robot-video')];
+  const speedButtons = [...document.querySelectorAll('[data-speed]')];
+  let rate = 2;
+  function setRate(value) {
+    const n = Number(value); if (!Number.isFinite(n) || n <= 0) return;
+    rate = n;
+    videos.forEach(v => { v.defaultPlaybackRate = n; v.playbackRate = n; });
+    speedButtons.forEach(b => { const active = Number(b.dataset.speed) === n; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active)); });
   }
-
-  /* ---------------------------
-     Real-robot video speed control
-
-     Default speed = 2x.
-     Buttons set the speed for ALL real-robot videos so
-     side-by-side comparisons stay consistent.
-     --------------------------- */
-  const robotVideos = Array.from(document.querySelectorAll(".robot-video"));
-  const speedButtons = Array.from(document.querySelectorAll(".speed-button"));
-
-  let currentPlaybackRate = 2.0;
-
-  function setPlaybackRate(rate) {
-    const safeRate = Number(rate);
-
-    if (!Number.isFinite(safeRate) || safeRate <= 0) {
-      return;
-    }
-
-    currentPlaybackRate = safeRate;
-
-    robotVideos.forEach((video) => {
-      video.defaultPlaybackRate = safeRate;
-      video.playbackRate = safeRate;
-    });
-
-    speedButtons.forEach((button) => {
-      const buttonRate = Number(button.dataset.speed);
-      const active = Math.abs(buttonRate - safeRate) < 1e-6;
-
-      button.classList.toggle("active", active);
-      button.setAttribute("aria-pressed", String(active));
-    });
-  }
-
-  /* Apply 2x as soon as each video's metadata is available. */
-  robotVideos.forEach((video) => {
-    video.defaultPlaybackRate = currentPlaybackRate;
-    video.playbackRate = currentPlaybackRate;
-
-    video.addEventListener("loadedmetadata", () => {
-      video.defaultPlaybackRate = currentPlaybackRate;
-      video.playbackRate = currentPlaybackRate;
-    });
-
-    /*
-      Some browsers can change playbackRate through their native
-      video controls. When playback restarts, we keep the user's
-      global website selection consistent.
-    */
-    video.addEventListener("play", () => {
-      if (Math.abs(video.playbackRate - currentPlaybackRate) > 1e-6) {
-        video.playbackRate = currentPlaybackRate;
-      }
-    });
-  });
-
-  speedButtons.forEach((button) => {
-    button.setAttribute(
-      "aria-pressed",
-      String(button.classList.contains("active"))
-    );
-
-    button.addEventListener("click", () => {
-      setPlaybackRate(button.dataset.speed);
-    });
-  });
-
-  setPlaybackRate(currentPlaybackRate);
+  videos.forEach(v => { v.addEventListener('loadedmetadata', () => { v.defaultPlaybackRate = rate; v.playbackRate = rate; }); v.addEventListener('play', () => { if (v.playbackRate !== rate) v.playbackRate = rate; }); });
+  speedButtons.forEach(b => b.addEventListener('click', () => setRate(b.dataset.speed)));
+  setRate(rate);
+  document.querySelectorAll('[data-play-row]').forEach(btn => btn.addEventListener('click', () => { const row = btn.closest('.video-task-row'); row.querySelectorAll('video').forEach(v => { v.currentTime = 0; v.play().catch(() => {}); }); document.querySelector('#videoStatus').textContent = 'Playing all three rollouts in this row.'; }));
+  document.querySelectorAll('[data-pause-row]').forEach(btn => btn.addEventListener('click', () => { const row = btn.closest('.video-task-row'); row.querySelectorAll('video').forEach(v => v.pause()); document.querySelector('#videoStatus').textContent = 'Paused the selected rollout row.'; }));
+  const dialog = document.querySelector('#figureDialog'); const expanded = document.querySelector('#expandedFigure'); const title = document.querySelector('#figureTitle'); const caption = document.querySelector('#figureCaption');
+  document.querySelectorAll('[data-lightbox]').forEach(link => link.addEventListener('click', e => { e.preventDefault(); const img = link.querySelector('img'); expanded.src = link.href; expanded.alt = img.alt; title.textContent = img.alt; caption.textContent = link.closest('figure').querySelector('figcaption')?.textContent || ''; dialog.showModal(); }));
+  document.querySelector('#closeFigure')?.addEventListener('click', () => dialog.close()); dialog?.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
 })();
