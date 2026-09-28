@@ -22,3 +22,20 @@
 .method-flow p{margin:5px 0 0;color:var(--muted);font-size:.84rem;line-height:1.5}
 @media(max-width:900px){.insight-grid{grid-template-columns:1fr}.method-flow{grid-template-columns:1fr}.method-flow>div{border-right:0;border-bottom:1px solid var(--line)}.method-flow>div:last-child{border-bottom:0}}
 @media(max-width:600px){.tldr-section{padding:66px 0 75px}.question-answer{padding:22px}.question-answer h3{font-size:1.25rem}.method-flow{margin:28px 0 42px}}
+/* Token legend for the structured cross-stream attention figure. */
+.symbol-guide{margin-top:24px;padding-top:18px;border-top:1px solid var(--line)}
+.symbol-guide-title{margin:0 0 12px;color:var(--ink);font-size:.78rem;font-weight:850;letter-spacing:.08em;text-transform:uppercase}
+.symbol-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px 14px}
+.symbol-grid>div{display:grid;grid-template-columns:auto 1fr;gap:9px;align-items:start;padding:10px 11px;background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:10px}
+.token-symbol{font:700 1rem/1.2 "Times New Roman",Georgia,serif;color:var(--ink);white-space:nowrap}
+.token-symbol sup,.token-symbol sub{font-size:.62em}
+.symbol-grid p{margin:0;color:var(--muted);font-size:.77rem;line-height:1.35}
+/* Real robot scenes: two complete frames in one row, explanation below. */
+.robot-intro{display:block}
+.scene-pair{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px;align-items:start}
+.scene-pair figure{padding:12px}
+.scene-pair img{height:auto;aspect-ratio:auto;object-fit:contain;background:#f5f7f6}
+.robot-copy{max-width:920px;margin:34px auto 0}
+.robot-copy h3{margin-bottom:12px}
+.robot-copy .robot-stats{max-width:520px}
+@media(max-width:600px){.symbol-grid{grid-template-columns:1fr}.scene-pair{grid-template-columns:1fr;gap:14px}.robot-copy{margin-top:26px}}
