@@ -1,31 +1,144 @@
-(() => {
-  const navToggle = document.querySelector('#navToggle');
-  const nav = document.querySelector('#navLinks');
-  if (navToggle && nav) {
-    navToggle.addEventListener('click', () => {
-      const open = nav.classList.toggle('open');
-      navToggle.setAttribute('aria-expanded', String(open));
-      navToggle.setAttribute('aria-label', open ? 'Close navigation' : 'Open navigation');
+'use strict';
+
+// Keep navigation usable without changing the desktop layout.
+const navToggle = document.querySelector('#navToggle');
+const nav = document.querySelector('#navLinks');
+navToggle.addEventListener('click', () => {
+  const expanded = navToggle.getAttribute('aria-expanded') !== 'true';
+  navToggle.setAttribute('aria-expanded', String(expanded));
+  nav.classList.toggle('is-open', expanded);
+});
+nav.addEventListener('click', event => {
+  if (!event.target.closest('a')) return;
+  nav.classList.remove('is-open');
+  navToggle.setAttribute('aria-expanded', 'false');
+});
+nav.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  nav.classList.remove('is-open');
+  navToggle.setAttribute('aria-expanded', 'false');
+  navToggle.focus();
+});
+
+// Progressive enhancement: all panels remain readable when JavaScript is disabled.
+const tabGroups = [];
+for (const group of document.querySelectorAll('[data-tabs]')) {
+  const list = group.querySelector('[data-tab-list]');
+  const buttons = [...list.querySelectorAll('[data-tab]')];
+  const panels = buttons.map(button => document.getElementById(button.dataset.tab));
+  const activate = (index, focus = false) => {
+    buttons.forEach((button, i) => {
+      button.setAttribute('aria-selected', String(i === index));
+      button.tabIndex = i === index ? 0 : -1;
+      panels[i].hidden = i !== index;
+      if (i !== index) panels[i].querySelectorAll('video').forEach(video => video.pause());
     });
-    nav.querySelectorAll('a').forEach(a => a.addEventListener('click', () => {
-      nav.classList.remove('open'); navToggle.setAttribute('aria-expanded','false');
+    if (focus) buttons[index].focus();
+  };
+  list.setAttribute('role', 'tablist');
+  buttons.forEach((button, index) => {
+    button.setAttribute('role', 'tab');
+    button.setAttribute('aria-controls', panels[index].id);
+    panels[index].setAttribute('role', 'tabpanel');
+    panels[index].setAttribute('aria-labelledby', button.id);
+    panels[index].tabIndex = 0;
+    button.addEventListener('click', () => activate(index));
+    button.addEventListener('keydown', event => {
+      let next;
+      if (event.key === 'ArrowRight') next = (index + 1) % buttons.length;
+      if (event.key === 'ArrowLeft') next = (index - 1 + buttons.length) % buttons.length;
+      if (event.key === 'Home') next = 0;
+      if (event.key === 'End') next = buttons.length - 1;
+      if (next === undefined) return;
+      event.preventDefault();
+      activate(next, true);
+    });
+  });
+  list.hidden = false;
+  activate(0);
+  tabGroups.push({ panels, activate });
+}
+function revealAnchor(hash, scroll = false) {
+  let id;
+  try { id = decodeURIComponent(hash.slice(1)); } catch { return; }
+  const target = document.getElementById(id);
+  if (!target) return;
+  for (const { panels, activate } of tabGroups) {
+    const index = panels.findIndex(panel => panel === target || panel.contains(target));
+    if (index >= 0) activate(index);
+  }
+  if (scroll) requestAnimationFrame(() => target.scrollIntoView({ block: 'start' }));
+}
+document.addEventListener('click', event => {
+  const link = event.target.closest('a[href^="#"]');
+  if (link) revealAnchor(link.hash);
+});
+window.addEventListener('hashchange', () => revealAnchor(location.hash, true));
+if (location.hash) revealAnchor(location.hash, true);
+
+// Native controls remain available if a row cannot start all of its videos.
+const videos = [...document.querySelectorAll('video')];
+const videoStatus = document.querySelector('#videoStatus');
+let playbackSpeed = 1;
+for (const video of videos) {
+  video.addEventListener('loadedmetadata', () => { video.playbackRate = playbackSpeed; });
+  video.addEventListener('error', () => {
+    videoStatus.textContent = 'A rollout could not load. Please reload the page or open its video file.';
+  });
+}
+for (const button of document.querySelectorAll('[data-speed]')) {
+  button.addEventListener('click', () => {
+    playbackSpeed = Number(button.dataset.speed);
+    videos.forEach(video => { video.playbackRate = playbackSpeed; });
+    document.querySelectorAll('[data-speed]').forEach(control => {
+      control.setAttribute('aria-pressed', String(control === button));
+    });
+    videoStatus.textContent = `All rollouts set to ${playbackSpeed}× speed.`;
+  });
+}
+for (const row of document.querySelectorAll('.video-task-row')) {
+  const rowVideos = [...row.querySelectorAll('video')];
+  row.querySelector('[data-play-row]').addEventListener('click', async () => {
+    const results = await Promise.allSettled(rowVideos.map(video => {
+      video.currentTime = 0;
+      video.playbackRate = playbackSpeed;
+      return video.play();
     }));
-  }
-  const videos = [...document.querySelectorAll('.robot-video')];
-  const speedButtons = [...document.querySelectorAll('[data-speed]')];
-  let rate = 2;
-  function setRate(value) {
-    const n = Number(value); if (!Number.isFinite(n) || n <= 0) return;
-    rate = n;
-    videos.forEach(v => { v.defaultPlaybackRate = n; v.playbackRate = n; });
-    speedButtons.forEach(b => { const active = Number(b.dataset.speed) === n; b.classList.toggle('active', active); b.setAttribute('aria-pressed', String(active)); });
-  }
-  videos.forEach(v => { v.addEventListener('loadedmetadata', () => { v.defaultPlaybackRate = rate; v.playbackRate = rate; }); v.addEventListener('play', () => { if (v.playbackRate !== rate) v.playbackRate = rate; }); });
-  speedButtons.forEach(b => b.addEventListener('click', () => setRate(b.dataset.speed)));
-  setRate(rate);
-  document.querySelectorAll('[data-play-row]').forEach(btn => btn.addEventListener('click', () => { const row = btn.closest('.video-task-row'); row.querySelectorAll('video').forEach(v => { v.currentTime = 0; v.play().catch(() => {}); }); document.querySelector('#videoStatus').textContent = 'Playing all three rollouts in this row.'; }));
-  document.querySelectorAll('[data-pause-row]').forEach(btn => btn.addEventListener('click', () => { const row = btn.closest('.video-task-row'); row.querySelectorAll('video').forEach(v => v.pause()); document.querySelector('#videoStatus').textContent = 'Paused the selected rollout row.'; }));
-  const dialog = document.querySelector('#figureDialog'); const expanded = document.querySelector('#expandedFigure'); const title = document.querySelector('#figureTitle'); const caption = document.querySelector('#figureCaption');
-  document.querySelectorAll('[data-lightbox]').forEach(link => link.addEventListener('click', e => { e.preventDefault(); const img = link.querySelector('img'); expanded.src = link.href; expanded.alt = img.alt; title.textContent = img.alt; caption.textContent = link.closest('figure').querySelector('figcaption')?.textContent || ''; dialog.showModal(); }));
-  document.querySelector('#closeFigure')?.addEventListener('click', () => dialog.close()); dialog?.addEventListener('click', e => { if (e.target === dialog) dialog.close(); });
-})();
+    const failed = results.some(result => result.status === 'rejected');
+    videoStatus.textContent = failed
+      ? 'Some videos could not start. Use the individual video controls to retry.'
+      : `${row.querySelector('h4').textContent}: playing from the beginning at ${playbackSpeed}×.`;
+  });
+  row.querySelector('[data-pause-row]').addEventListener('click', () => {
+    rowVideos.forEach(video => video.pause());
+    videoStatus.textContent = `${row.querySelector('h4').textContent}: paused.`;
+  });
+}
+
+// Image links still open the full figure when JavaScript is unavailable.
+const dialog = document.querySelector('#figureDialog');
+const expandedFigure = document.querySelector('#expandedFigure');
+let figureTrigger;
+for (const link of document.querySelectorAll('[data-lightbox]')) {
+  link.addEventListener('click', event => {
+    if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    if (typeof dialog.showModal !== 'function') return;
+    event.preventDefault();
+    figureTrigger = link;
+    const thumbnail = link.querySelector('img');
+    expandedFigure.src = link.href;
+    expandedFigure.alt = thumbnail.alt;
+    document.querySelector('#figureCaption').textContent = link.closest('figure').querySelector('figcaption')?.textContent || thumbnail.alt;
+    dialog.showModal();
+  });
+}
+document.querySelector('#closeFigure').addEventListener('click', () => dialog.close());
+dialog.addEventListener('click', event => {
+  if (event.target !== dialog) return;
+  const bounds = dialog.getBoundingClientRect();
+  if (event.clientX < bounds.left || event.clientX > bounds.right || event.clientY < bounds.top || event.clientY > bounds.bottom) dialog.close();
+});
+dialog.addEventListener('close', () => {
+  expandedFigure.removeAttribute('src');
+  figureTrigger?.focus({ preventScroll: true });
+});
